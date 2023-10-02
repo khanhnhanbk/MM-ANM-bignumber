@@ -12,6 +12,7 @@ from main import (
     divide_lists,
     modulo_lists,
     isqrt_list,
+    power_list,
 )
 
 
@@ -21,15 +22,14 @@ def generate_random_number(size):
 
 def run_tests():
     for _ in range(1):  # Adjust the number of tests as needed
-        num1 = generate_random_number(2000)
+        num1 = generate_random_number(1000)
+        num2 = generate_random_number(1000)
 
-        list1 = number_to_list(num1)
-
-        # isqrt_list
-        # result = isqrt_list(list1)
-        math.isqrt(num1)
-
-        print("isqrt_list: OK")
+        # Check addition
+        assert (
+            list_to_number(multiply_lists(number_to_list(num1), number_to_list(num2)))
+            == num1 * num2
+        )
 
 
 if __name__ == "__main__":

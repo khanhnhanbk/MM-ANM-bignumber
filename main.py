@@ -1,9 +1,13 @@
+# Const
+BASE = 2
+
+
 def number_to_list(num):
     # Convert the number to a list of digits
     digits = []
     while num > 0:
-        digits.append(num % 10)
-        num //= 10
+        digits.append(num % BASE)
+        num //= BASE
     return digits
 
 
@@ -11,7 +15,7 @@ def list_to_number(lst):
     # Convert the list of digits to a number
     num = 0
     for digit in reversed(lst):
-        num = num * 10 + digit
+        num = num * BASE + digit
     return num
 
 
@@ -42,32 +46,34 @@ def add_lists(list1, list2):
     else:
         list2 += [0] * (len1 - len2)
 
-    # Perform element-wise addition
-    result = [(a + b) for a, b in zip(list1, list2)]
-
-    # Handle carry
+    # Perform element-wise addition with carry
+    result = []
     carry = 0
-    for i in range(len(result)):
-        total = result[i] + carry
-        result[i] = total % 10
-        carry = total // 10
+    for a, b in zip(list1, list2):
+        sum = a + b + carry
+        result.append(sum % BASE)
+        carry = sum // BASE
 
-    # If there's a remaining carry, add a new digit
-    if carry:
+    # Add the last carry if it exists
+    if carry > 0:
         result.append(carry)
 
-    # Remove leading zeros of list1 and list2
-    while len(list1) > 0 and list1[-1] == 0:
-        list1.pop()
+    while len(result) > 0 and result[-1] == 0:
+        result.pop()
     while len(list2) > 0 and list2[-1] == 0:
         list2.pop()
-
+    while len(list1) > 0 and list1[-1] == 0:
+        list1.pop()
     return result
 
 
 def subtract_lists(list1, list2):
     if compare_lists(list1, list2) == -1:
         return [0]
+    if compare_lists(list1, list2) == 0:
+        return [0]
+    if compare_lists(list2, [0]) == 0:
+        return list1.copy()
 
     # Pad the shorter list with zeros
     len1, len2 = len(list1), len(list2)
@@ -76,44 +82,44 @@ def subtract_lists(list1, list2):
     else:
         list2 += [0] * (len1 - len2)
 
-    # Perform element-wise subtraction with borrowing
+    # Perform element-wise subtraction with carry
     result = []
-    borrow = 0
+    carry = 0
     for a, b in zip(list1, list2):
-        diff = a - b - borrow
-        borrow = 0 if diff >= 0 else 1
-        result.append(diff + 10 if borrow else diff)
+        sub = a - b + carry
+        if sub < 0:
+            sub += BASE
+            carry = -1
+        else:
+            carry = 0
+        result.append(sub)
 
-    # Remove leading zeros
+    # Add the last carry if it exists
+    if carry < 0:
+        result.pop()
+
     while len(result) > 0 and result[-1] == 0:
         result.pop()
     while len(list2) > 0 and list2[-1] == 0:
         list2.pop()
+    while len(list1) > 0 and list1[-1] == 0:
+        list1.pop()
 
-    return result if len(result) > 0 else [0]
+    return result
 
 
 def multiply_lists(list1, list2):
     len1, len2 = len(list1), len(list2)
 
-    # Initialize result with zeros
-    result = [0] * (len1 + len2)
-
-    # Perform element-wise multiplication
-    for i in range(len1):
-        if list1[i] == 0:  # Skip multiplication by zero
+    result = [0]
+    for i in range(len2 - 1, -1, -1):
+        result.insert(0, 0)
+        if list2[i] == 0:
             continue
+        # list2[i] == 1 because using BASE = 2
+        result = add_lists(result, list1)
 
-        carry = 0
-        for j in range(len2):
-            product = list1[i] * list2[j] + result[i + j] + carry
-            result[i + j] = product % 10
-            carry = product // 10
-
-        result[i + len2] += carry
-
-    # Remove leading zeros
-    while result and result[-1] == 0:
+    while len(result) > 0 and result[-1] == 0:
         result.pop()
 
     return result
@@ -147,6 +153,9 @@ def divide_lists(dividend, divisor):
 
 
 def modulo_lists(dividend, divisor):
+    if compare_lists(dividend, divisor) == -1:
+        return dividend.copy()
+
     _, remainder = divide_lists(dividend, divisor)
     return remainder
 
@@ -194,27 +203,18 @@ def sub_one_list(num):
 
 
 def div_two_list(num):
+    if len(num) == 0 or len(num) == 1:
+        return [0]
+    result = num.copy()
+    # remove result[0]
+    result.pop(0)
+    return result
+
+
+def modulo_two_list(num):
     if num == [0]:
         return [0]
-    if num == [1]:
-        return [0]
-
-    quotient = []
-    quotientDigit = 0
-    current_dividend = 0
-    index = len(num) - 1
-
-    while index >= 0:
-        current_dividend = current_dividend * 10 + num[index]
-        quotientDigit = current_dividend // 2
-        quotient.insert(0, quotientDigit)
-        current_dividend %= 2
-        index -= 1
-
-    while len(quotient) > 0 and quotient[-1] == 0:
-        quotient.pop()
-
-    return quotient
+    return [num[0]]
 
 
 def isqrt_list(num):
@@ -232,3 +232,25 @@ def isqrt_list(num):
             left = add_one_list(mid)
 
     return sub_one_list(left)
+
+
+def power_list(base, exp, modular):
+    if modular == [0]:
+        raise ValueError("Modular cannot be zero")
+    if exp == [0]:
+        return [1]
+    if compare_lists(base, modular) == 1:
+        base = modulo_lists(base, modular)
+
+    result = [1]
+    while exp != [0]:
+        if modulo_two_list(exp) == [1]:
+            result = multiply_lists(result, base)
+            if compare_lists(result, modular) == 1:
+                result = modulo_lists(result, modular)
+        base = multiply_lists(base, base)
+        exp = div_two_list(exp)
+
+    result = modulo_lists(result, modular)
+
+    return result
